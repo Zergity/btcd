@@ -1,0 +1,20 @@
+# Build image
+FROM golang:1.10.3
+
+WORKDIR /go/src/github.com/btcsuite/btcd
+COPY . .
+
+RUN go get -u github.com/Masterminds/glide
+RUN glide install
+RUN CGO_ENABLED=0 GOOS=linux go install . ./cmd/...
+
+# Production image
+FROM alpine:3.6
+
+RUN apk add --no-cache ca-certificates
+COPY --from=0 /go/bin/* /bin/
+
+EXPOSE 18555
+EXPOSE 18556
+
+CMD btcd
