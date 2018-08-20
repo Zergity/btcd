@@ -86,7 +86,7 @@ do
 				btcsuite/btcwallet:alpine\
 				btcwallet --simnet\
 				--usespv\
-				--rpcconnect=$IP:$RPCPORT\
+				--connect=$IP:$PORT\
 				--rpclisten=:$WALLET_RPCPORT --username=a --password=a\
 				--createtemp --appdata=/tmp/btcwallet
 	else
