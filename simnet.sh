@@ -5,18 +5,15 @@
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
 
 # Initialize our own variables:
-interactive=1
-debug=0
+remove=1
 
-while getopts "h?bd" opt; do
+while getopts "h?n" opt; do
     case "$opt" in
     h|\?)
-        echo "simnet.sh [-h] [-?] [-b] [-d] nodes_count"
+        echo "simnet.sh [-h] [-?] [-n] nodes_count"
         exit 0
         ;;
-	b)	interactive=0
-		;;
-	d)	debug=1
+	n)	remove=0
 		;;
     esac
 done
@@ -25,22 +22,22 @@ shift $((OPTIND-1))
 
 [ "${1:-}" = "--" ] && shift
 
-# non-opts arguments
-NODES_COUNT=$1
+# addresses and keys
+MINING_ADDRS=(SSwMMZKdfuK7oPjhEGuzVPtGVuGQfaG6Tb					SgPcNHf5PNCwqcg9236t4MEjF9STGCGP6A						SQiWJ4nGKfU1DtSejWBpSSAbaxgHheQaFK						Sbd1cibMeFwbR3eAJimJBHV9EVCLT2WJJX						SQiWJ4nGKfU1DtSejWBpSSAbaxgHheQaFK						SUkMuEFAq5MgzrdFghNF6LB9N5W8e74Q81)
+MINING_SKEYS=(FudTNM3XSmTHzxHVkHHXHGAidcaYACK2hKiVLtZAmsuELsf7xShq	FqLdJtGRLBtcR2byJkoXyLryab6ZyuLbXiZpNiNQmmwQ4ES4MsJy	FtFziNXGxvRpAbWsXz8edWatFKirABA6GDZ8w2qCzmyrMpvFK22B	Fu7NBsxm27hMkFLzXZEoSQZGR9hZR4uEBYw1sUT7RqzLEVm7sCQH	FtFziNXGxvRpAbWsXz8edWatFKirABA6GDZ8w2qCzmyrMpvFK22B	Fs2ezDkpassKCSG1UpDqcV2ib1sC5NQNgAZRBsgk2Xgwj7jxLrk3)
 
-# process OPTs
-if [[ $debug -ne 0 ]]; then
-	CMD_PREFIX=winpty
+# non-opts arguments
+if [ "$#" -eq 1 ]; then
+    NODES_COUNT=$1
 else
-	CMD_PREFIX=start
+	NODES_COUNT=${#MINING_ADDRS[@]}
 fi
 
-if [[ $interactive -ne 0 ]]; then
-	CMD_IT=-it
-	CMD_IA=-ia
+# process OPTs
+if [[ $remove -ne 0 ]]; then
+	CMD_RM=--rm
 else
-	CMD_IT=
-	CMD_IA=
+	CMD_RM=
 fi
 
 NETWORK=YggChain
@@ -59,9 +56,6 @@ ADDPEER=
 # expose a random node to the host
 #PUBLISH_NODE=$((2 + $RANDOM % NODES_COUNT))
 
-MINING_ADDRS=(SSwMMZKdfuK7oPjhEGuzVPtGVuGQfaG6Tb					SgPcNHf5PNCwqcg9236t4MEjF9STGCGP6A						SQiWJ4nGKfU1DtSejWBpSSAbaxgHheQaFK						Sbd1cibMeFwbR3eAJimJBHV9EVCLT2WJJX						SQiWJ4nGKfU1DtSejWBpSSAbaxgHheQaFK						SUkMuEFAq5MgzrdFghNF6LB9N5W8e74Q81)
-MINING_SKEYS=(FudTNM3XSmTHzxHVkHHXHGAidcaYACK2hKiVLtZAmsuELsf7xShq	FqLdJtGRLBtcR2byJkoXyLryab6ZyuLbXiZpNiNQmmwQ4ES4MsJy	FtFziNXGxvRpAbWsXz8edWatFKirABA6GDZ8w2qCzmyrMpvFK22B	Fu7NBsxm27hMkFLzXZEoSQZGR9hZR4uEBYw1sUT7RqzLEVm7sCQH	FtFziNXGxvRpAbWsXz8edWatFKirABA6GDZ8w2qCzmyrMpvFK22B	Fs2ezDkpassKCSG1UpDqcV2ib1sC5NQNgAZRBsgk2Xgwj7jxLrk3)
-
 for ((i=0; i<NODES_COUNT; i++))
 do
 	NAME=node$i
@@ -69,13 +63,13 @@ do
 	RPCPORT=$((19000+i))
 	echo "Node: $NAME"
 	if [ ! "$(docker ps -qaf name=$NAME)" ]; then
-		$CMD_PREFIX docker run $CMD_IT --name=$NAME --network=$NETWORK --publish=$PORT:$PORT --publish=$RPCPORT:$RPCPORT\
+		docker run -d --name=$NAME --network=$NETWORK --publish=$PORT:$PORT --publish=$RPCPORT:$RPCPORT\
 				btcsuite/btcd:alpine\
 				btcd --simnet --listen=:$PORT --miningaddr=${MINING_ADDRS[$i]}\
 				--rpclisten=:$RPCPORT --rpcuser=a --rpcpass=a\
 				--nobanning $ADDPEER
 	else
-		$CMD_PREFIX docker start $CMD_IA $NAME
+		docker start $NAME
 	fi
 	sleep 2
 	IP=`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $NAME`
@@ -83,15 +77,21 @@ do
 	ADDPEER="$ADDPEER --addpeer=$IP:$PORT"
 
 	# start wallets up
+	WALLET_NAME=wallet$i
 	WALLET_RPCPORT=$((20000+i))
 
-	$CMD_PREFIX docker run $CMD_IT --rm --name=wallet$i --network=$NETWORK --publish=$WALLET_RPCPORT:$WALLET_RPCPORT\
-			btcsuite/btcwallet:alpine\
-			btcwallet --simnet\
-			--usespv\
-			--rpcconnect=$IP:$RPCPORT\
-			--rpclisten=:$WALLET_RPCPORT --username=a --password=a\
-			--createtemp --appdata=/tmp/btcwallet
+	if [ ! "$(docker ps -qaf name=$WALLET_NAME)" ]; then
+		docker run -d --name=$WALLET_NAME --network=$NETWORK --publish=$WALLET_RPCPORT:$WALLET_RPCPORT\
+				$CMD_RM\
+				btcsuite/btcwallet:alpine\
+				btcwallet --simnet\
+				--usespv\
+				--rpcconnect=$IP:$RPCPORT\
+				--rpclisten=:$WALLET_RPCPORT --username=a --password=a\
+				--createtemp --appdata=/tmp/btcwallet
+	else
+		docker start $WALLET_NAME
+	fi
 	echo "	Wallet RPC at $IP:$WALLET_RPCPORT"
 done
 
