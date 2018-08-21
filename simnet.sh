@@ -6,14 +6,17 @@ OPTIND=1         # Reset in case getopts has been used previously in the shell.
 
 # Initialize our own variables:
 remove=1
+daemon_only=0
 
-while getopts "h?n" opt; do
+while getopts "h?nd" opt; do
     case "$opt" in
     h|\?)
-        echo "simnet.sh [-h] [-?] [-n] nodes_count"
+        echo "simnet.sh [-h] [-?] [-n] [-d] nodes_count"
         exit 0
         ;;
 	n)	remove=0
+		;;
+	d)	daemon_only=1
 		;;
     esac
 done
@@ -76,34 +79,38 @@ do
 	echo "	at $IP:$PORT"
 	ADDPEER="$ADDPEER --addpeer=$IP:$PORT"
 
-	# start wallets up
-	WALLET_NAME=wallet$i
-	WALLET_RPCPORT=$((20000+i))
+	if [[ $daemon_only -eq 0 ]]; then
+		# start wallets up
+		WALLET_NAME=wallet$i
+		WALLET_RPCPORT=$((20000+i))
 
-	if [ ! "$(docker ps -qaf name=$WALLET_NAME)" ]; then
-		docker run -d --name=$WALLET_NAME --network=$NETWORK --publish=$WALLET_RPCPORT:$WALLET_RPCPORT\
-				$CMD_RM\
-				btcsuite/btcwallet:alpine\
-				btcwallet --simnet\
-				--usespv\
-				--connect=$IP:$PORT\
-				--rpclisten=:$WALLET_RPCPORT --username=a --password=a\
-				--createtemp --appdata=/tmp/btcwallet
-	else
-		docker start $WALLET_NAME
+		if [ ! "$(docker ps -qaf name=$WALLET_NAME)" ]; then
+			docker run -d --name=$WALLET_NAME --network=$NETWORK --publish=$WALLET_RPCPORT:$WALLET_RPCPORT\
+					$CMD_RM\
+					btcsuite/btcwallet:alpine\
+					btcwallet --simnet\
+					--usespv\
+					--connect=$IP:$PORT\
+					--rpclisten=:$WALLET_RPCPORT --username=a --password=a\
+					--createtemp --appdata=/tmp/btcwallet
+		else
+			docker start $WALLET_NAME
+		fi
+		echo "	Wallet RPC at $IP:$WALLET_RPCPORT"
 	fi
-	echo "	Wallet RPC at $IP:$WALLET_RPCPORT"
 done
 
-sleep 5
+if [[ $daemon_only -eq 0 ]]; then
+	sleep 5
 
-# import private key to wallets
-for ((i=0; i<NODES_COUNT; i++))
-do
-	WALLET_RPCPORT=$((20000+i))
-	btcctl --simnet --rpcuser=a --rpcpass=a --skipverify -s localhost:$WALLET_RPCPORT --wallet\
-			walletpassphrase "password" 0 &&\
-	btcctl --simnet --rpcuser=a --rpcpass=a --skipverify -s localhost:$WALLET_RPCPORT --wallet\
-			importprivkey ${MINING_SKEYS[$i]} &&\
-	echo "PrvKey imported: ${MINING_SKEYS[$i]}"
-done
+	# import private key to wallets
+	for ((i=0; i<NODES_COUNT; i++))
+	do
+		WALLET_RPCPORT=$((20000+i))
+		btcctl --simnet --rpcuser=a --rpcpass=a --skipverify -s localhost:$WALLET_RPCPORT --wallet\
+				walletpassphrase "password" 0 &&\
+		btcctl --simnet --rpcuser=a --rpcpass=a --skipverify -s localhost:$WALLET_RPCPORT --wallet\
+				importprivkey ${MINING_SKEYS[$i]} &&\
+		echo "PrvKey imported: ${MINING_SKEYS[$i]}"
+	done
+fi
