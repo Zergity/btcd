@@ -28,6 +28,9 @@ const (
 	// tfModified indicates that a txout has been modified since it was
 	// loaded.
 	tfModified
+
+	// tfYDR indicates that a txout is YDR.
+	tfYDR
 )
 
 // UtxoEntry houses details about an individual transaction output in a utxo
@@ -62,6 +65,11 @@ func (entry *UtxoEntry) isModified() bool {
 // transaction.
 func (entry *UtxoEntry) IsCoinBase() bool {
 	return entry.packedFlags&tfCoinBase == tfCoinBase
+}
+
+// IsYDR returns whether or not the output was YDR.
+func (entry *UtxoEntry) IsYDR() bool {
+	return entry.packedFlags&tfYDR == tfYDR
 }
 
 // BlockHeight returns the height of the block containing the output.
@@ -147,9 +155,13 @@ func (view *UtxoViewpoint) LookupEntry(outpoint wire.OutPoint) *UtxoEntry {
 // unspendable.  When the view already has an entry for the output, it will be
 // marked unspent.  All fields will be updated for existing entries since it's
 // possible it has changed during a reorg.
-func (view *UtxoViewpoint) addTxOut(outpoint wire.OutPoint, txOut *wire.TxOut, isCoinBase bool, blockHeight int32) {
+func (view *UtxoViewpoint) addTxOut(outpoint wire.OutPoint, txOut *wire.TxOut, isCoinBase bool, blockHeight int32, isYDR bool) {
 	// Don't add provably unspendable outputs.
 	if txscript.IsUnspendable(txOut.PkScript) {
+		return
+	}
+
+	if txOut.Value == 0 {
 		return
 	}
 
@@ -160,13 +172,20 @@ func (view *UtxoViewpoint) addTxOut(outpoint wire.OutPoint, txOut *wire.TxOut, i
 	entry := view.LookupEntry(outpoint)
 	if entry == nil {
 		entry = new(UtxoEntry)
+		if isYDR {
+			entry.packedFlags |= tfYDR
+		}
 		view.entries[outpoint] = entry
 	}
 
 	entry.amount = txOut.Value
 	entry.pkScript = txOut.PkScript
 	entry.blockHeight = blockHeight
-	entry.packedFlags = tfModified
+	if entry.IsYDR() {
+		entry.packedFlags = tfModified | tfYDR
+	} else {
+		entry.packedFlags = tfModified
+	}
 	if isCoinBase {
 		entry.packedFlags |= tfCoinBase
 	}
@@ -182,13 +201,24 @@ func (view *UtxoViewpoint) AddTxOut(tx *btcutil.Tx, txOutIdx uint32, blockHeight
 		return
 	}
 
+	isYDR := false
+	for idx, txOut := range tx.MsgTx().TxOut {
+		if uint32(idx) >= txOutIdx {
+			break
+		}
+		if txOut.Value == 0 {
+			isYDR = true
+			break
+		}
+	}
+
 	// Update existing entries.  All fields are updated because it's
 	// possible (although extremely unlikely) that the existing entry is
 	// being replaced by a different transaction with the same hash.  This
 	// is allowed so long as the previous transaction is fully spent.
 	prevOut := wire.OutPoint{Hash: *tx.Hash(), Index: txOutIdx}
 	txOut := tx.MsgTx().TxOut[txOutIdx]
-	view.addTxOut(prevOut, txOut, IsCoinBase(tx), blockHeight)
+	view.addTxOut(prevOut, txOut, IsCoinBase(tx), blockHeight, isYDR)
 }
 
 // AddTxOuts adds all outputs in the passed transaction which are not provably
@@ -200,14 +230,19 @@ func (view *UtxoViewpoint) AddTxOuts(tx *btcutil.Tx, blockHeight int32) {
 	// provably unspendable.
 	isCoinBase := IsCoinBase(tx)
 	prevOut := wire.OutPoint{Hash: *tx.Hash()}
+	isYDR := false
 	for txOutIdx, txOut := range tx.MsgTx().TxOut {
+		if txOut.Value == 0 {
+			isYDR = true
+			continue
+		}
 		// Update existing entries.  All fields are updated because it's
 		// possible (although extremely unlikely) that the existing
 		// entry is being replaced by a different transaction with the
-		// same hash.  This is allowed so long as the previous
+		// same hash.  This is allowed so long as the previous,
 		// transaction is fully spent.
 		prevOut.Index = uint32(txOutIdx)
-		view.addTxOut(prevOut, txOut, isCoinBase, blockHeight)
+		view.addTxOut(prevOut, txOut, isCoinBase, blockHeight, isYDR)
 	}
 }
 

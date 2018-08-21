@@ -1130,6 +1130,9 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *btcutil.Block, vi
 	// caught by checkTransactionSanity.
 	var totalSatoshiOut int64
 	for _, txOut := range transactions[0].MsgTx().TxOut {
+		if txOut.Value == 0 {
+			break
+		}
 		totalSatoshiOut += txOut.Value
 	}
 	expectedSatoshiOut := CalcBlockSubsidy(node.height, b.chainParams) +

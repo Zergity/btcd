@@ -283,6 +283,14 @@ func createCoinbaseTx(params *chaincfg.Params, coinbaseScript []byte, nextBlockH
 		Value:    blockchain.CalcBlockSubsidy(nextBlockHeight, params),
 		PkScript: pkScript,
 	})
+	tx.AddTxOut(&wire.TxOut{
+		Value:    0,
+		PkScript: nil,
+	})
+	tx.AddTxOut(&wire.TxOut{
+		Value:    100000000,
+		PkScript: pkScript,
+	})
 	return btcutil.NewTx(tx), nil
 }
 
