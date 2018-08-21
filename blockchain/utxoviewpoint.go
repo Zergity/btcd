@@ -172,19 +172,15 @@ func (view *UtxoViewpoint) addTxOut(outpoint wire.OutPoint, txOut *wire.TxOut, i
 	entry := view.LookupEntry(outpoint)
 	if entry == nil {
 		entry = new(UtxoEntry)
-		if isYDR {
-			entry.packedFlags |= tfYDR
-		}
 		view.entries[outpoint] = entry
 	}
 
 	entry.amount = txOut.Value
 	entry.pkScript = txOut.PkScript
 	entry.blockHeight = blockHeight
-	if entry.IsYDR() {
-		entry.packedFlags = tfModified | tfYDR
-	} else {
-		entry.packedFlags = tfModified
+	entry.packedFlags = tfModified
+	if isYDR {
+		entry.packedFlags |= tfYDR
 	}
 	if isCoinBase {
 		entry.packedFlags |= tfCoinBase
