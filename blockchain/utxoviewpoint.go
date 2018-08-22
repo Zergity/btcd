@@ -205,9 +205,13 @@ func (view *UtxoViewpoint) IsYDR(tx *btcutil.Tx, txOutIdx uint32) bool {
 		return txOutIdx > uint32(sepIdx)
 	}
 
+	return false
+
+	/** Use this to optimize blocksize later
 	inputOutpoint := tx.MsgTx().TxIn[0].PreviousOutPoint
 	entry := view.LookupEntry(inputOutpoint)
 	return entry.IsYDR()
+	*/
 }
 
 // AddTxOut adds the specified output of the passed transaction to the view if
