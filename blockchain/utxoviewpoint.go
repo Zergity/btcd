@@ -187,6 +187,29 @@ func (view *UtxoViewpoint) addTxOut(outpoint wire.OutPoint, txOut *wire.TxOut, i
 	}
 }
 
+// TxOutSeparatorIdx returns the separator TxOut (Value == 0)
+func TxOutSeparatorIdx(tx *btcutil.Tx) int {
+	for idx, txOut := range tx.MsgTx().TxOut {
+		if txOut.Value == 0 {
+			return idx
+		}
+	}
+	return -1
+}
+
+// IsYDR return wehter the output is YDR
+func (view *UtxoViewpoint) IsYDR(tx *btcutil.Tx, txOutIdx uint32) bool {
+	sepIdx := TxOutSeparatorIdx(tx)
+
+	if sepIdx >= 0 {
+		return txOutIdx > uint32(sepIdx)
+	}
+
+	inputOutpoint := tx.MsgTx().TxIn[0].PreviousOutPoint
+	entry := view.LookupEntry(inputOutpoint)
+	return entry.IsYDR()
+}
+
 // AddTxOut adds the specified output of the passed transaction to the view if
 // it exists and is not provably unspendable.  When the view already has an
 // entry for the output, it will be marked unspent.  All fields will be updated
@@ -197,23 +220,13 @@ func (view *UtxoViewpoint) AddTxOut(tx *btcutil.Tx, txOutIdx uint32, blockHeight
 		return
 	}
 
-	isYDR := false
-	for idx, txOut := range tx.MsgTx().TxOut {
-		if uint32(idx) >= txOutIdx {
-			break
-		}
-		if txOut.Value == 0 {
-			isYDR = true
-			break
-		}
-	}
-
 	// Update existing entries.  All fields are updated because it's
 	// possible (although extremely unlikely) that the existing entry is
 	// being replaced by a different transaction with the same hash.  This
 	// is allowed so long as the previous transaction is fully spent.
 	prevOut := wire.OutPoint{Hash: *tx.Hash(), Index: txOutIdx}
 	txOut := tx.MsgTx().TxOut[txOutIdx]
+	isYDR := view.IsYDR(tx, txOutIdx)
 	view.addTxOut(prevOut, txOut, IsCoinBase(tx), blockHeight, isYDR)
 }
 
@@ -226,18 +239,14 @@ func (view *UtxoViewpoint) AddTxOuts(tx *btcutil.Tx, blockHeight int32) {
 	// provably unspendable.
 	isCoinBase := IsCoinBase(tx)
 	prevOut := wire.OutPoint{Hash: *tx.Hash()}
-	isYDR := false
 	for txOutIdx, txOut := range tx.MsgTx().TxOut {
-		if txOut.Value == 0 {
-			isYDR = true
-			continue
-		}
 		// Update existing entries.  All fields are updated because it's
 		// possible (although extremely unlikely) that the existing
 		// entry is being replaced by a different transaction with the
 		// same hash.  This is allowed so long as the previous,
 		// transaction is fully spent.
 		prevOut.Index = uint32(txOutIdx)
+		isYDR := view.IsYDR(tx, prevOut.Index)
 		view.addTxOut(prevOut, txOut, isCoinBase, blockHeight, isYDR)
 	}
 }
