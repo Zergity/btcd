@@ -44,8 +44,6 @@ if [[ $daemon_only -eq 0 ]]; then
 
 	sleep 5
 
-	btcctl --simnet --rpcuser=a --rpcpass=a --skipverify --wallet\
-			walletpassphrase "password" 0 &&\
-	btcctl --simnet --rpcuser=a --rpcpass=a --skipverify --wallet\
-			importprivkey $MINING_SKEY
+	btcctl --simnet --rpcuser=a --rpcpass=a --skipverify --wallet walletpassphrase "password" 0 &&\
+	btcctl --simnet --rpcuser=a --rpcpass=a --skipverify --wallet importprivkey $MINING_SKEY
 fi
