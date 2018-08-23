@@ -40,7 +40,7 @@ start btcd --simnet --rpcuser=a --rpcpass=a --miningaddr=$MINING_ADDR
 sleep 2
 
 if [[ $daemon_only -eq 0 ]]; then
-	start btcwallet --simnet --usespv --connect=localhost --username=a --password=a --createtemp --appdata="$LOCALAPPDATA/btcwallet"
+	start btcwallet --simnet --connect=localhost --username=a --password=a --createtemp --appdata="$LOCALAPPDATA/btcwallet"
 
 	sleep 5
 
