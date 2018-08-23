@@ -534,6 +534,32 @@ func NewSendFromCmd(fromAccount, toAddress string, amount float64, minConf *int,
 	}
 }
 
+// SendFrom1Cmd defines the sendfrom JSON-RPC command.
+type SendFrom1Cmd struct {
+	FromAccount string
+	ToAddress   string
+	Amount      float64 // In BTC
+	MinConf     *int    `jsonrpcdefault:"1"`
+	Comment     *string
+	CommentTo   *string
+}
+
+// NewSendFrom1Cmd returns a new instance which can be used to issue a sendfrom
+// JSON-RPC command.
+//
+// The parameters which are pointers indicate they are optional.  Passing nil
+// for optional parameters will use the default value.
+func NewSendFrom1Cmd(fromAccount, toAddress string, amount float64, minConf *int, comment, commentTo *string) *SendFrom1Cmd {
+	return &SendFrom1Cmd{
+		FromAccount: fromAccount,
+		ToAddress:   toAddress,
+		Amount:      amount,
+		MinConf:     minConf,
+		Comment:     comment,
+		CommentTo:   commentTo,
+	}
+}
+
 // SendManyCmd defines the sendmany JSON-RPC command.
 type SendManyCmd struct {
 	FromAccount string
@@ -749,6 +775,7 @@ func init() {
 	MustRegisterCmd("lockunspent", (*LockUnspentCmd)(nil), flags)
 	MustRegisterCmd("move", (*MoveCmd)(nil), flags)
 	MustRegisterCmd("sendfrom", (*SendFromCmd)(nil), flags)
+	MustRegisterCmd("sendfrom1", (*SendFrom1Cmd)(nil), flags)
 	MustRegisterCmd("sendmany", (*SendManyCmd)(nil), flags)
 	MustRegisterCmd("sendtoaddress", (*SendToAddressCmd)(nil), flags)
 	MustRegisterCmd("sendtoaddress1", (*SendToAddress1Cmd)(nil), flags)
