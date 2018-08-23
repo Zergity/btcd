@@ -117,6 +117,7 @@ type ListUnspentResult struct {
 	Amount        float64 `json:"amount"`
 	Confirmations int64   `json:"confirmations"`
 	Spendable     bool    `json:"spendable"`
+	IsYDR         bool    `json:"ydr"`
 }
 
 // SignRawTransactionError models the data that contains script verification
