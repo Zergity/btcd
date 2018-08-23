@@ -1470,8 +1470,8 @@ func (r FutureGetBalanceParseResult) Receive() (btcutil.Amount, error) {
 // returned instance.
 //
 // See GetBalance for the blocking version and more details.
-func (c *Client) GetBalanceAsync(token int, account string) FutureGetBalanceResult {
-	cmd := btcjson.NewGetBalanceCmd(&token, &account, nil)
+func (c *Client) GetBalanceAsync(account string) FutureGetBalanceResult {
+	cmd := btcjson.NewGetBalanceCmd(&account, nil)
 	return c.sendCmd(cmd)
 }
 
@@ -1480,8 +1480,8 @@ func (c *Client) GetBalanceAsync(token int, account string) FutureGetBalanceResu
 // be "*" for all accounts.
 //
 // See GetBalanceMinConf to override the minimum number of confirmations.
-func (c *Client) GetBalance(token int, account string) (btcutil.Amount, error) {
-	return c.GetBalanceAsync(token, account).Receive()
+func (c *Client) GetBalance(account string) (btcutil.Amount, error) {
+	return c.GetBalanceAsync(account).Receive()
 }
 
 // GetBalanceMinConfAsync returns an instance of a type that can be used to get
@@ -1489,8 +1489,8 @@ func (c *Client) GetBalance(token int, account string) (btcutil.Amount, error) {
 // the returned instance.
 //
 // See GetBalanceMinConf for the blocking version and more details.
-func (c *Client) GetBalanceMinConfAsync(token int, account string, minConfirms int) FutureGetBalanceResult {
-	cmd := btcjson.NewGetBalanceCmd(&token, &account, &minConfirms)
+func (c *Client) GetBalanceMinConfAsync(account string, minConfirms int) FutureGetBalanceResult {
+	cmd := btcjson.NewGetBalanceCmd(&account, &minConfirms)
 	return c.sendCmd(cmd)
 }
 
@@ -1499,12 +1499,12 @@ func (c *Client) GetBalanceMinConfAsync(token int, account string, minConfirms i
 // account may be "*" for all accounts.
 //
 // See GetBalance to use the default minimum number of confirmations.
-func (c *Client) GetBalanceMinConf(token int, account string, minConfirms int) (btcutil.Amount, error) {
+func (c *Client) GetBalanceMinConf(account string, minConfirms int) (btcutil.Amount, error) {
 	if c.config.EnableBCInfoHacks {
-		response := c.GetBalanceMinConfAsync(token, account, minConfirms)
+		response := c.GetBalanceMinConfAsync(account, minConfirms)
 		return FutureGetBalanceParseResult(response).Receive()
 	}
-	return c.GetBalanceMinConfAsync(token, account, minConfirms).Receive()
+	return c.GetBalanceMinConfAsync(account, minConfirms).Receive()
 }
 
 // FutureGetReceivedByAccountResult is a future promise to deliver the result of
