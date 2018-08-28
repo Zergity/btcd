@@ -55,7 +55,7 @@ func isSmallInt(op *opcode) bool {
 func isBidAskScript(pops []parsedOpcode) bool {
 	return len(pops) == 2 &&
 		pops[0].opcode.value == OP_RETURN &&
-		len(pops[1].data) == 64
+		len(pops[1].data) == 8
 }
 
 // IsBidAskScript returns
