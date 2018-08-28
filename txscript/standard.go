@@ -481,12 +481,7 @@ func NullDataScript(data []byte) ([]byte, error) {
 // BidAskScript does
 func BidAskScript(pubKeyHash []byte, ratio float64) ([]byte, error) {
 	return NewScriptBuilder().
-		AddOp(OP_RETURN). // NullScript
-		AddOp(OP_DUP).    // P2PKH for winning address
-		AddOp(OP_HASH160).
-		AddData(pubKeyHash).
-		AddOp(OP_EQUALVERIFY).
-		AddOp(OP_CHECKSIG).
+		AddOp(OP_RETURN).               // NullScript
 		AddData(Float64ToBytes(ratio)). // bidding ratio
 		Script()
 }
