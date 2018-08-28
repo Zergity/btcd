@@ -508,6 +508,38 @@ func NewMoveCmd(fromAccount, toAccount string, amount float64, minConf *int, com
 	}
 }
 
+// BidFromCmd defines
+type BidFromCmd struct {
+	FromAccount string
+	ToAddress   string
+	Amount      float64 // In BTC
+}
+
+// NewBidFromCmd returns
+func NewBidFromCmd(fromAccount, toAddress string, amount float64) *BidFromCmd {
+	return &BidFromCmd{
+		FromAccount: fromAccount,
+		ToAddress:   toAddress,
+		Amount:      amount,
+	}
+}
+
+// AskFromCmd defines
+type AskFromCmd struct {
+	FromAccount string
+	ToAddress   string
+	Amount      float64 // In BTC
+}
+
+// NewAskFromCmd returns
+func NewAskFromCmd(fromAccount, toAddress string, amount float64) *AskFromCmd {
+	return &AskFromCmd{
+		FromAccount: fromAccount,
+		ToAddress:   toAddress,
+		Amount:      amount,
+	}
+}
+
 // SendFromCmd defines the sendfrom JSON-RPC command.
 type SendFromCmd struct {
 	FromAccount string
@@ -774,6 +806,8 @@ func init() {
 	MustRegisterCmd("listunspent1", (*ListUnspent1Cmd)(nil), flags)
 	MustRegisterCmd("lockunspent", (*LockUnspentCmd)(nil), flags)
 	MustRegisterCmd("move", (*MoveCmd)(nil), flags)
+	MustRegisterCmd("bidfrom", (*BidFromCmd)(nil), flags)
+	MustRegisterCmd("askfrom", (*AskFromCmd)(nil), flags)
 	MustRegisterCmd("sendfrom", (*SendFromCmd)(nil), flags)
 	MustRegisterCmd("sendfrom1", (*SendFrom1Cmd)(nil), flags)
 	MustRegisterCmd("sendmany", (*SendManyCmd)(nil), flags)
