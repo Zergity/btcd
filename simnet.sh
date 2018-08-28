@@ -6,13 +6,14 @@ OPTIND=1         # Reset in case getopts has been used previously in the shell.
 
 # Initialize our own variables:
 remove=0
-daemon_only=0
+daemon=1
+wallet=1
 first=0
 
-while getopts "h?frd" opt; do
+while getopts "h?frdw" opt; do
     case "$opt" in
     h|\?)
-        echo "$(basename ""$0"") [-h] [-?] [-f|-r] [-d] nodes_count"
+        echo "$(basename ""$0"") [-h] [-?] [-f|-r] [-d|-w] nodes_count"
         exit 0
         ;;
 	r)	remove=1
@@ -20,7 +21,9 @@ while getopts "h?frd" opt; do
 	f)	first=1
 		remove=1
 		;;
-	d)	daemon_only=1
+	d)	wallet=0
+		;;
+	w)	daemon=0
 		;;
     esac
 done
@@ -47,13 +50,13 @@ if [[ $remove -ne 0 ]]; then
 fi
 rm -rf "$LOCALAPPDATA/btcwallet/simnet"
 
-start btcd --simnet --rpcuser=a --rpcpass=a --miningaddr=$MINING_ADDR
+if [[ $daemon -ne 0 ]]; then
+	start btcd --simnet --rpcuser=a --rpcpass=a --miningaddr=$MINING_ADDR
+	sleep 2
+fi
 
-sleep 2
-
-if [[ $daemon_only -eq 0 ]]; then
+if [[ $wallet -ne 0 ]]; then
 	start btcwallet --simnet --connect=localhost --username=a --password=a --createtemp --appdata="$LOCALAPPDATA/btcwallet"
-
 	sleep 5
 
 	btcctl --simnet --rpcuser=a --rpcpass=a --skipverify --wallet walletpassphrase "password" 0
@@ -62,7 +65,6 @@ if [[ $daemon_only -eq 0 ]]; then
 
 	if [[ $first -ne 0 ]]; then
 		btcctl --simnet --rpcuser=a --rpcpass=a --skipverify generate 101
-
 		sleep 2
 
 		btcctl --simnet --rpcuser=a --rpcpass=a --skipverify --wallet sendfrom imported $WALLET_ADDR 50
