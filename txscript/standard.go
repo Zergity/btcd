@@ -479,7 +479,7 @@ func NullDataScript(data []byte) ([]byte, error) {
 }
 
 // BidAskScript does
-func BidAskScript(pubKeyHash []byte, ratio float64) ([]byte, error) {
+func BidAskScript(ratio float64) ([]byte, error) {
 	return NewScriptBuilder().
 		AddOp(OP_RETURN).               // NullScript
 		AddData(Float64ToBytes(ratio)). // bidding ratio
