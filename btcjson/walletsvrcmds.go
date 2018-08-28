@@ -512,15 +512,19 @@ func NewMoveCmd(fromAccount, toAccount string, amount float64, minConf *int, com
 type BidFromCmd struct {
 	FromAccount string
 	ToAddress   string
-	Amount      float64 // In BTC
+	MaxSpend    float64 // In BTC
+	Ratio       float64
+	MinConf     *int `jsonrpcdefault:"1"`
 }
 
 // NewBidFromCmd returns
-func NewBidFromCmd(fromAccount, toAddress string, amount float64) *BidFromCmd {
+func NewBidFromCmd(fromAccount, toAddress string, maxSpend float64, ratio float64, minConf *int) *BidFromCmd {
 	return &BidFromCmd{
 		FromAccount: fromAccount,
 		ToAddress:   toAddress,
-		Amount:      amount,
+		MaxSpend:    maxSpend,
+		Ratio:       ratio,
+		MinConf:     minConf,
 	}
 }
 
@@ -528,15 +532,19 @@ func NewBidFromCmd(fromAccount, toAddress string, amount float64) *BidFromCmd {
 type AskFromCmd struct {
 	FromAccount string
 	ToAddress   string
-	Amount      float64 // In BTC
+	MaxSpend    float64 // In BTC
+	Ratio       float64
+	MinConf     *int `jsonrpcdefault:"1"`
 }
 
 // NewAskFromCmd returns
-func NewAskFromCmd(fromAccount, toAddress string, amount float64) *AskFromCmd {
+func NewAskFromCmd(fromAccount, toAddress string, maxSpend float64, ratio float64, minConf *int) *AskFromCmd {
 	return &AskFromCmd{
 		FromAccount: fromAccount,
 		ToAddress:   toAddress,
-		Amount:      amount,
+		MaxSpend:    maxSpend,
+		Ratio:       ratio,
+		MinConf:     minConf,
 	}
 }
 
