@@ -51,20 +51,20 @@ func isSmallInt(op *opcode) bool {
 	return false
 }
 
-// isBidAskScript returns
-func isBidAskScript(pops []parsedOpcode) bool {
+// isMarketScript returns
+func isMarketScript(pops []parsedOpcode) bool {
 	return len(pops) == 2 &&
 		pops[0].opcode.value == OP_RETURN &&
 		len(pops[1].data) == 8
 }
 
-// IsBidAskScript returns
-func IsBidAskScript(script []byte) bool {
+// IsMarketScript returns
+func IsMarketScript(script []byte) bool {
 	pops, err := parseScript(script)
 	if err != nil {
 		return false
 	}
-	return isBidAskScript(pops)
+	return isMarketScript(pops)
 }
 
 // isScriptHash returns true if the script passed is a pay-to-script-hash

@@ -478,8 +478,8 @@ func NullDataScript(data []byte) ([]byte, error) {
 	return NewScriptBuilder().AddOp(OP_RETURN).AddData(data).Script()
 }
 
-// BidAskScript does
-func BidAskScript(ratio float64) ([]byte, error) {
+// MarketScript does
+func MarketScript(ratio float64) ([]byte, error) {
 	return NewScriptBuilder().
 		AddOp(OP_RETURN).               // NullScript
 		AddData(Float64ToBytes(ratio)). // bidding ratio
