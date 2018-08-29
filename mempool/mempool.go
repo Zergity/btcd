@@ -169,6 +169,8 @@ type TxPool struct {
 	outpoints     map[wire.OutPoint]*btcutil.Tx
 	pennyTotal    float64 // exponentially decaying total for penny spends.
 	lastPennyUnix int64   // unix time of last ``penny spend''
+	bid           []*mining.MarketDesc
+	ask           []*mining.MarketDesc
 
 	// nextExpireScan is the time after which the orphan pool will be
 	// scanned in order to evict orphans.  This is NOT a hard deadline as
