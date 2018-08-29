@@ -67,6 +67,20 @@ func IsMarketScript(script []byte) bool {
 	return isMarketScript(pops)
 }
 
+// isMarket does
+func isMarket(t *wire.TxOut) bool {
+	return t.Value == 0 && IsMarketScript(t.PkScript)
+}
+
+// IsMarket does
+func IsMarket(outputs []*wire.TxOut) bool {
+	if len(outputs) != 2 {
+		return false
+	}
+
+	return isMarket(outputs[0]) || isMarket(outputs[1])
+}
+
 // isScriptHash returns true if the script passed is a pay-to-script-hash
 // transaction, false otherwise.
 func isScriptHash(pops []parsedOpcode) bool {
