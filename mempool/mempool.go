@@ -169,8 +169,8 @@ type TxPool struct {
 	outpoints     map[wire.OutPoint]*btcutil.Tx
 	pennyTotal    float64 // exponentially decaying total for penny spends.
 	lastPennyUnix int64   // unix time of last ``penny spend''
-	bid           []*mining.MarketDesc
-	ask           []*mining.MarketDesc
+	bid           map[chainhash.Hash]*mining.MarketDesc
+	ask           map[chainhash.Hash]*mining.MarketDesc
 
 	// nextExpireScan is the time after which the orphan pool will be
 	// scanned in order to evict orphans.  This is NOT a hard deadline as
@@ -515,6 +515,25 @@ func (mp *TxPool) RemoveDoubleSpends(tx *btcutil.Tx) {
 	mp.mtx.Unlock()
 }
 
+// addMarketCommand adds
+//
+// This function MUST be called with the mempool lock held (for writes).
+func (mp *TxPool) addMarketOrder(utxoView *blockchain.UtxoViewpoint, tx *btcutil.Tx, height int32, fee int64) *mining.MarketDesc {
+	// Add the transaction to the pool and not mark the referenced outpoints
+	// as spent by the pool.
+	marketDesc := mining.MarketDesc{
+		Tx:       tx,
+		Added:    time.Now(),
+		Height:   height,
+		MaxSpend: 0,
+		Ratio:    0.0,
+	}
+
+	mp.bid[*tx.Hash()] = &marketDesc
+
+	return &marketDesc
+}
+
 // addTransaction adds the passed transaction to the memory pool.  It should
 // not be called directly as it doesn't perform any validation.  This is a
 // helper for maybeAcceptTransaction.
@@ -638,7 +657,7 @@ func (mp *TxPool) FetchTransaction(txHash *chainhash.Hash) (*btcutil.Tx, error) 
 // more details.
 //
 // This function MUST be called with the mempool lock held (for writes).
-func (mp *TxPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit, rejectDupOrphans bool) ([]*chainhash.Hash, *TxDesc, error) {
+func (mp *TxPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit, rejectDupOrphans bool, isMarket bool) ([]*chainhash.Hash, *TxDesc, error) {
 	txHash := tx.Hash()
 
 	// If a transaction has iwtness data, and segwit isn't active yet, If
@@ -866,14 +885,16 @@ func (mp *TxPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit, rejec
 	// in the next block.  Transactions which are being added back to the
 	// memory pool from blocks that have been disconnected during a reorg
 	// are exempted.
-	if isNew && !mp.cfg.Policy.DisableRelayPriority && txFee < minFee {
-		currentPriority := mining.CalcPriority(tx.MsgTx(), utxoView,
-			nextBlockHeight)
-		if currentPriority <= mining.MinHighPriority {
-			str := fmt.Sprintf("transaction %v has insufficient "+
-				"priority (%g <= %g)", txHash,
-				currentPriority, mining.MinHighPriority)
-			return nil, nil, txRuleError(wire.RejectInsufficientFee, str)
+	if !isMarket {
+		if isNew && !mp.cfg.Policy.DisableRelayPriority && txFee < minFee {
+			currentPriority := mining.CalcPriority(tx.MsgTx(), utxoView,
+				nextBlockHeight)
+			if currentPriority <= mining.MinHighPriority {
+				str := fmt.Sprintf("transaction %v has insufficient "+
+					"priority (%g <= %g)", txHash,
+					currentPriority, mining.MinHighPriority)
+				return nil, nil, txRuleError(wire.RejectInsufficientFee, str)
+			}
 		}
 	}
 
@@ -913,6 +934,11 @@ func (mp *TxPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit, rejec
 		return nil, nil, err
 	}
 
+	if isMarket {
+		mp.addMarketOrder(utxoView, tx, bestHeight, txFee)
+		return nil, nil, nil
+	}
+
 	// Add to transaction pool.
 	txD := mp.addTransaction(utxoView, tx, bestHeight, txFee)
 
@@ -936,7 +962,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit, rejec
 func (mp *TxPool) MaybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit bool) ([]*chainhash.Hash, *TxDesc, error) {
 	// Protect concurrent access.
 	mp.mtx.Lock()
-	hashes, txD, err := mp.maybeAcceptTransaction(tx, isNew, rateLimit, true)
+	hashes, txD, err := mp.maybeAcceptTransaction(tx, isNew, rateLimit, true, false)
 	mp.mtx.Unlock()
 
 	return hashes, txD, err
@@ -979,7 +1005,7 @@ func (mp *TxPool) processOrphans(acceptedTx *btcutil.Tx) []*TxDesc {
 			// Potentially accept an orphan into the tx pool.
 			for _, tx := range orphans {
 				missing, txD, err := mp.maybeAcceptTransaction(
-					tx, true, true, false)
+					tx, true, true, false, false)
 				if err != nil {
 					// The orphan is now invalid, so there
 					// is no way any other orphans which
@@ -1043,6 +1069,59 @@ func (mp *TxPool) ProcessOrphans(acceptedTx *btcutil.Tx) []*TxDesc {
 	return acceptedTxns
 }
 
+// ProcessMarketOrder is
+func (mp *TxPool) ProcessMarketOrder(tx *btcutil.Tx, allowOrphan, rateLimit bool, tag Tag) ([]*TxDesc, error) {
+	log.Tracef("Processing market order %v", tx.Hash())
+	// Protect concurrent access.
+	mp.mtx.Lock()
+	defer mp.mtx.Unlock()
+
+	// Potentially accept the transaction to the memory pool.
+	missingParents, txD, err := mp.maybeAcceptTransaction(tx, true, rateLimit,
+		true, true)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(missingParents) == 0 {
+		// Accept any orphan transactions that depend on this
+		// transaction (they may no longer be orphans if all inputs
+		// are now available) and repeat for those accepted
+		// transactions until there are no more.
+		newTxs := mp.processOrphans(tx)
+		acceptedTxs := make([]*TxDesc, len(newTxs)+1)
+
+		// Add the parent transaction first so remote nodes
+		// do not add orphans.
+		acceptedTxs[0] = txD
+		copy(acceptedTxs[1:], newTxs)
+
+		return acceptedTxs, nil
+	}
+
+	// The transaction is an orphan (has inputs missing).  Reject
+	// it if the flag to allow orphans is not set.
+	if !allowOrphan {
+		// Only use the first missing parent transaction in
+		// the error message.
+		//
+		// NOTE: RejectDuplicate is really not an accurate
+		// reject code here, but it matches the reference
+		// implementation and there isn't a better choice due
+		// to the limited number of reject codes.  Missing
+		// inputs is assumed to mean they are already spent
+		// which is not really always the case.
+		str := fmt.Sprintf("orphan transaction %v references "+
+			"outputs of unknown or fully-spent "+
+			"transaction %v", tx.Hash(), missingParents[0])
+		return nil, txRuleError(wire.RejectDuplicate, str)
+	}
+
+	// Potentially add the orphan transaction to the orphan pool.
+	err = mp.maybeAddOrphan(tx, tag)
+	return nil, err
+}
+
 // ProcessTransaction is the main workhorse for handling insertion of new
 // free-standing transactions into the memory pool.  It includes functionality
 // such as rejecting duplicate transactions, ensuring transactions follow all
@@ -1063,7 +1142,7 @@ func (mp *TxPool) ProcessTransaction(tx *btcutil.Tx, allowOrphan, rateLimit bool
 
 	// Potentially accept the transaction to the memory pool.
 	missingParents, txD, err := mp.maybeAcceptTransaction(tx, true, rateLimit,
-		true)
+		true, false)
 	if err != nil {
 		return nil, err
 	}
