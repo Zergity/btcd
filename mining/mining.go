@@ -53,9 +53,8 @@ type TxDesc struct {
 	FeePerKB int64
 }
 
-// MarketDesc is a descriptor about a market command transaction in a transaction
-// source along with additional metadata.
-type MarketDesc struct {
+// OdrDesc is
+type OdrDesc struct {
 	// Tx is the transaction associated with the entry.
 	Tx *btcutil.Tx
 
