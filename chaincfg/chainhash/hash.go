@@ -24,6 +24,9 @@ var ErrHashStrSize = fmt.Errorf("max hash string length is %v bytes", MaxHashStr
 // typically represents the double sha256 of data.
 type Hash [HashSize]byte
 
+// ZeroHash is 0x00 address.
+var ZeroHash, _ = NewHashFromStr("0")
+
 // String returns the Hash as the hexadecimal string of the byte-reversed
 // hash.
 func (hash Hash) String() string {

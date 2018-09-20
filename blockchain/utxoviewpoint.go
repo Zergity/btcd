@@ -97,6 +97,18 @@ func (entry *UtxoEntry) PkScript() []byte {
 	return entry.pkScript
 }
 
+// TokenID returns the token hash for the output.
+func (entry *UtxoEntry) TokenID() []byte {
+	if len(entry.pkScript) == 0 {
+		return nil
+	} else if entry.pkScript[0] == txscript.OP_NDR {
+		return []byte{}
+	} else if entry.pkScript[0] == txscript.OP_TOKEN {
+		return entry.pkScript[1:chainhash.HashSize]
+	}
+	return nil
+}
+
 // Clone returns a shallow copy of the utxo entry.
 func (entry *UtxoEntry) Clone() *UtxoEntry {
 	if entry == nil {

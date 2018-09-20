@@ -258,6 +258,10 @@ func (t TxWitness) SerializeSize() int {
 }
 
 // TxOut defines a bitcoin transaction output.
+// Token scrip is prepend to PkScript, it can be
+// 	- nil/empty for STB
+// 	- OP_NDR for NDR
+//	- OP_TOKEN + chainhash.Hash for smart contract token
 type TxOut struct {
 	Value    int64
 	PkScript []byte
