@@ -164,6 +164,24 @@ func NewGetBalanceCmd(account *string, minConf *int) *GetBalanceCmd {
 	}
 }
 
+// GetBalance1Cmd defines the getbalance JSON-RPC command.
+type GetBalance1Cmd struct {
+	Account *string
+	MinConf *int `jsonrpcdefault:"1"`
+}
+
+// NewGetBalance1Cmd returns a new instance which can be used to issue a
+// getbalance JSON-RPC command.
+//
+// The parameters which are pointers indicate they are optional.  Passing nil
+// for optional parameters will use the default value.
+func NewGetBalance1Cmd(account *string, minConf *int) *GetBalance1Cmd {
+	return &GetBalance1Cmd{
+		Account: account,
+		MinConf: minConf,
+	}
+}
+
 // GetNewAddressCmd defines the getnewaddress JSON-RPC command.
 type GetNewAddressCmd struct {
 	Account *string
@@ -431,6 +449,26 @@ func NewListUnspentCmd(minConf, maxConf *int, addresses *[]string) *ListUnspentC
 	}
 }
 
+// ListUnspent1Cmd defines the listunspent JSON-RPC command.
+type ListUnspent1Cmd struct {
+	MinConf   *int `jsonrpcdefault:"1"`
+	MaxConf   *int `jsonrpcdefault:"9999999"`
+	Addresses *[]string
+}
+
+// NewListUnspent1Cmd returns a new instance which can be used to issue a
+// listunspent JSON-RPC command.
+//
+// The parameters which are pointers indicate they are optional.  Passing nil
+// for optional parameters will use the default value.
+func NewListUnspent1Cmd(minConf, maxConf *int, addresses *[]string) *ListUnspent1Cmd {
+	return &ListUnspent1Cmd{
+		MinConf:   minConf,
+		MaxConf:   maxConf,
+		Addresses: addresses,
+	}
+}
+
 // LockUnspentCmd defines the lockunspent JSON-RPC command.
 type LockUnspentCmd struct {
 	Unlock       bool
@@ -470,6 +508,46 @@ func NewMoveCmd(fromAccount, toAccount string, amount float64, minConf *int, com
 	}
 }
 
+// BidFromCmd defines
+type BidFromCmd struct {
+	FromAccount string
+	ToAddress   string
+	MaxSpend    float64 // In BTC
+	Ratio       float64
+	MinConf     *int `jsonrpcdefault:"1"`
+}
+
+// NewBidFromCmd returns
+func NewBidFromCmd(fromAccount, toAddress string, maxSpend float64, ratio float64, minConf *int) *BidFromCmd {
+	return &BidFromCmd{
+		FromAccount: fromAccount,
+		ToAddress:   toAddress,
+		MaxSpend:    maxSpend,
+		Ratio:       ratio,
+		MinConf:     minConf,
+	}
+}
+
+// AskFromCmd defines
+type AskFromCmd struct {
+	FromAccount string
+	ToAddress   string
+	MaxSpend    float64 // In BTC
+	Ratio       float64
+	MinConf     *int `jsonrpcdefault:"1"`
+}
+
+// NewAskFromCmd returns
+func NewAskFromCmd(fromAccount, toAddress string, maxSpend float64, ratio float64, minConf *int) *AskFromCmd {
+	return &AskFromCmd{
+		FromAccount: fromAccount,
+		ToAddress:   toAddress,
+		MaxSpend:    maxSpend,
+		Ratio:       ratio,
+		MinConf:     minConf,
+	}
+}
+
 // SendFromCmd defines the sendfrom JSON-RPC command.
 type SendFromCmd struct {
 	FromAccount string
@@ -487,6 +565,32 @@ type SendFromCmd struct {
 // for optional parameters will use the default value.
 func NewSendFromCmd(fromAccount, toAddress string, amount float64, minConf *int, comment, commentTo *string) *SendFromCmd {
 	return &SendFromCmd{
+		FromAccount: fromAccount,
+		ToAddress:   toAddress,
+		Amount:      amount,
+		MinConf:     minConf,
+		Comment:     comment,
+		CommentTo:   commentTo,
+	}
+}
+
+// SendFrom1Cmd defines the sendfrom JSON-RPC command.
+type SendFrom1Cmd struct {
+	FromAccount string
+	ToAddress   string
+	Amount      float64 // In BTC
+	MinConf     *int    `jsonrpcdefault:"1"`
+	Comment     *string
+	CommentTo   *string
+}
+
+// NewSendFrom1Cmd returns a new instance which can be used to issue a sendfrom
+// JSON-RPC command.
+//
+// The parameters which are pointers indicate they are optional.  Passing nil
+// for optional parameters will use the default value.
+func NewSendFrom1Cmd(fromAccount, toAddress string, amount float64, minConf *int, comment, commentTo *string) *SendFrom1Cmd {
+	return &SendFrom1Cmd{
 		FromAccount: fromAccount,
 		ToAddress:   toAddress,
 		Amount:      amount,
@@ -533,6 +637,28 @@ type SendToAddressCmd struct {
 // for optional parameters will use the default value.
 func NewSendToAddressCmd(address string, amount float64, comment, commentTo *string) *SendToAddressCmd {
 	return &SendToAddressCmd{
+		Address:   address,
+		Amount:    amount,
+		Comment:   comment,
+		CommentTo: commentTo,
+	}
+}
+
+// SendToAddress1Cmd defines the sendtoaddress JSON-RPC command.
+type SendToAddress1Cmd struct {
+	Address   string
+	Amount    float64
+	Comment   *string
+	CommentTo *string
+}
+
+// NewSendToAddress1Cmd returns a new instance which can be used to issue a
+// sendtoaddress JSON-RPC command.
+//
+// The parameters which are pointers indicate they are optional.  Passing nil
+// for optional parameters will use the default value.
+func NewSendToAddress1Cmd(address string, amount float64, comment, commentTo *string) *SendToAddress1Cmd {
+	return &SendToAddress1Cmd{
 		Address:   address,
 		Amount:    amount,
 		Comment:   comment,
@@ -668,6 +794,7 @@ func init() {
 	MustRegisterCmd("getaccountaddress", (*GetAccountAddressCmd)(nil), flags)
 	MustRegisterCmd("getaddressesbyaccount", (*GetAddressesByAccountCmd)(nil), flags)
 	MustRegisterCmd("getbalance", (*GetBalanceCmd)(nil), flags)
+	MustRegisterCmd("getbalance1", (*GetBalance1Cmd)(nil), flags)
 	MustRegisterCmd("getnewaddress", (*GetNewAddressCmd)(nil), flags)
 	MustRegisterCmd("getrawchangeaddress", (*GetRawChangeAddressCmd)(nil), flags)
 	MustRegisterCmd("getreceivedbyaccount", (*GetReceivedByAccountCmd)(nil), flags)
@@ -684,11 +811,16 @@ func init() {
 	MustRegisterCmd("listsinceblock", (*ListSinceBlockCmd)(nil), flags)
 	MustRegisterCmd("listtransactions", (*ListTransactionsCmd)(nil), flags)
 	MustRegisterCmd("listunspent", (*ListUnspentCmd)(nil), flags)
+	MustRegisterCmd("listunspent1", (*ListUnspent1Cmd)(nil), flags)
 	MustRegisterCmd("lockunspent", (*LockUnspentCmd)(nil), flags)
 	MustRegisterCmd("move", (*MoveCmd)(nil), flags)
+	MustRegisterCmd("bidfrom", (*BidFromCmd)(nil), flags)
+	MustRegisterCmd("askfrom", (*AskFromCmd)(nil), flags)
 	MustRegisterCmd("sendfrom", (*SendFromCmd)(nil), flags)
+	MustRegisterCmd("sendfrom1", (*SendFrom1Cmd)(nil), flags)
 	MustRegisterCmd("sendmany", (*SendManyCmd)(nil), flags)
 	MustRegisterCmd("sendtoaddress", (*SendToAddressCmd)(nil), flags)
+	MustRegisterCmd("sendtoaddress1", (*SendToAddress1Cmd)(nil), flags)
 	MustRegisterCmd("setaccount", (*SetAccountCmd)(nil), flags)
 	MustRegisterCmd("settxfee", (*SetTxFeeCmd)(nil), flags)
 	MustRegisterCmd("signmessage", (*SignMessageCmd)(nil), flags)

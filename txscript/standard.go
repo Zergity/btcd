@@ -5,7 +5,9 @@
 package txscript
 
 import (
+	"encoding/binary"
 	"fmt"
+	"math"
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/wire"
@@ -474,6 +476,29 @@ func NullDataScript(data []byte) ([]byte, error) {
 	}
 
 	return NewScriptBuilder().AddOp(OP_RETURN).AddData(data).Script()
+}
+
+// MarketScript does
+func MarketScript(ratio float64) ([]byte, error) {
+	return NewScriptBuilder().
+		AddOp(OP_RETURN).               // NullScript
+		AddData(Float64ToBytes(ratio)). // bidding ratio
+		Script()
+}
+
+// Float64FromBytes does
+func Float64FromBytes(bytes []byte) float64 {
+	bits := binary.BigEndian.Uint64(bytes)
+	float := math.Float64frombits(bits)
+	return float
+}
+
+// Float64ToBytes does
+func Float64ToBytes(float float64) []byte {
+	bits := math.Float64bits(float)
+	bytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(bytes, bits)
+	return bytes
 }
 
 // MultiSigScript returns a valid script for a multisignature redemption where

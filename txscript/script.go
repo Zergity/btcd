@@ -51,6 +51,36 @@ func isSmallInt(op *opcode) bool {
 	return false
 }
 
+// isMarketScript returns
+func isMarketScript(pops []parsedOpcode) bool {
+	return len(pops) == 2 &&
+		pops[0].opcode.value == OP_RETURN &&
+		len(pops[1].data) == 8
+}
+
+// IsMarketScript returns
+func IsMarketScript(script []byte) bool {
+	pops, err := parseScript(script)
+	if err != nil {
+		return false
+	}
+	return isMarketScript(pops)
+}
+
+// isMarket does
+func isMarket(t *wire.TxOut) bool {
+	return t.Value == 0 && IsMarketScript(t.PkScript)
+}
+
+// IsMarket does
+func IsMarket(outputs []*wire.TxOut) bool {
+	if len(outputs) != 2 {
+		return false
+	}
+
+	return isMarket(outputs[0]) || isMarket(outputs[1])
+}
+
 // isScriptHash returns true if the script passed is a pay-to-script-hash
 // transaction, false otherwise.
 func isScriptHash(pops []parsedOpcode) bool {

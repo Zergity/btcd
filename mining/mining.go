@@ -53,6 +53,25 @@ type TxDesc struct {
 	FeePerKB int64
 }
 
+// OdrDesc is
+type OdrDesc struct {
+	// Tx is the transaction associated with the entry.
+	Tx *btcutil.Tx
+
+	// Added is the time when the entry was added to the source pool.
+	Added time.Time
+
+	// Height is the block height when the entry was added to the the source
+	// pool.
+	Height int32
+
+	// Fee is the total fee the transaction associated with the entry pays.
+	MaxSpend btcutil.Amount
+
+	// Fee is the total fee the transaction associated with the entry pays.
+	Ratio float64
+}
+
 // TxSource represents a source of transactions to consider for inclusion in
 // new blocks.
 //
@@ -281,6 +300,14 @@ func createCoinbaseTx(params *chaincfg.Params, coinbaseScript []byte, nextBlockH
 	})
 	tx.AddTxOut(&wire.TxOut{
 		Value:    blockchain.CalcBlockSubsidy(nextBlockHeight, params),
+		PkScript: pkScript,
+	})
+	tx.AddTxOut(&wire.TxOut{
+		Value:    0,
+		PkScript: nil,
+	})
+	tx.AddTxOut(&wire.TxOut{
+		Value:    100000000,
 		PkScript: pkScript,
 	})
 	return btcutil.NewTx(tx), nil

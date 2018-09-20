@@ -3319,7 +3319,34 @@ func handleSendRawTransaction(s *rpcServer, cmd interface{}, closeChan <-chan st
 
 	// Use 0 for the tag to represent local node.
 	tx := btcutil.NewTx(&msgTx)
+	if txscript.IsMarket(msgTx.TxOut) {
+		acceptedOdr, err := s.cfg.TxMemPool.ProcessOrder(tx, false, false, 0)
+
+		if err != nil {
+			// When the error is a rule error, it means the transaction was
+			// simply rejected as opposed to something actually going wrong,
+			// so log it as such.  Otherwise, something really did go wrong,
+			// so log it as an actual error.  In both cases, a JSON-RPC
+			// error is returned to the client with the deserialization
+			// error code (to match bitcoind behavior).
+			if _, ok := err.(mempool.RuleError); ok {
+				rpcsLog.Debugf("Rejected transaction %v: %v", tx.Hash(),
+					err)
+			} else {
+				rpcsLog.Errorf("Failed to process transaction %v: %v",
+					tx.Hash(), err)
+			}
+			return nil, &btcjson.RPCError{
+				Code:    btcjson.ErrRPCDeserialization,
+				Message: "TX rejected: " + err.Error(),
+			}
+		}
+
+		return acceptedOdr, nil
+	}
+
 	acceptedTxs, err := s.cfg.TxMemPool.ProcessTransaction(tx, false, false, 0)
+
 	if err != nil {
 		// When the error is a rule error, it means the transaction was
 		// simply rejected as opposed to something actually going wrong,
