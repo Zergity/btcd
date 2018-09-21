@@ -263,6 +263,24 @@ type TxOut struct {
 	PkScript []byte
 }
 
+// TokenIdentity defines a token identity
+type TokenIdentity bool
+
+// STB defines token identity for Stabilio
+const STB TokenIdentity = false
+
+// NDR defines token identity for Endurio
+const NDR TokenIdentity = true
+
+// TokenID returns whether the TxOut is an output of NDR instead of STB
+func (t *TxOut) TokenID() TokenIdentity {
+	// txscript.OP_NDR
+	if len(t.PkScript) > 0 && t.PkScript[len(t.PkScript)-1] == 0xb8 {
+		return NDR
+	}
+	return STB
+}
+
 // SerializeSize returns the number of bytes it would take to serialize the
 // the transaction output.
 func (t *TxOut) SerializeSize() int {

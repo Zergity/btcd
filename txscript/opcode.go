@@ -223,7 +223,9 @@ const (
 	OP_NOP7                = 0xb6 // 182
 	OP_NOP8                = 0xb7 // 183
 	OP_NOP9                = 0xb8 // 184
+	OP_TOKEN               = 0xb8 // 184 - AKA OP_NOP9
 	OP_NOP10               = 0xb9 // 185
+	OP_NDR                 = 0xb8 // 184 - AKA OP_NOP9
 	OP_UNKNOWN186          = 0xba // 186
 	OP_UNKNOWN187          = 0xbb // 187
 	OP_UNKNOWN188          = 0xbc // 188

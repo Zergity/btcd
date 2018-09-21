@@ -97,6 +97,14 @@ func (entry *UtxoEntry) PkScript() []byte {
 	return entry.pkScript
 }
 
+// TokenID returns the token identity of the output.
+func (entry *UtxoEntry) TokenID() wire.TokenIdentity {
+	if len(entry.pkScript) > 0 && entry.pkScript[len(entry.pkScript)-1] == txscript.OP_NDR {
+		return wire.NDR
+	}
+	return wire.STB
+}
+
 // Clone returns a shallow copy of the utxo entry.
 func (entry *UtxoEntry) Clone() *UtxoEntry {
 	if entry == nil {
