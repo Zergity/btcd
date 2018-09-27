@@ -279,9 +279,11 @@ func createCoinbaseTx(params *chaincfg.Params, coinbaseScript []byte, nextBlockH
 		SignatureScript: coinbaseScript,
 		Sequence:        wire.MaxTxInSequenceNum,
 	})
+	// Block reward is paid using NDR
 	tx.AddTxOut(&wire.TxOut{
 		Value:    blockchain.CalcBlockSubsidy(nextBlockHeight, params),
 		PkScript: pkScript,
+		TokenID:  wire.NDR,
 	})
 	return btcutil.NewTx(tx), nil
 }

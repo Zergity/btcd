@@ -261,14 +261,28 @@ func (t TxWitness) SerializeSize() int {
 type TxOut struct {
 	Value    int64
 	PkScript []byte
+	TokenID  TokenIdentity
 }
+
+// TokenIdentity defines a token identity
+type TokenIdentity bool
+
+// STB defines token identity for Stabilio
+const STB TokenIdentity = false
+
+// NDR defines token identity for Endurio
+const NDR TokenIdentity = true
 
 // SerializeSize returns the number of bytes it would take to serialize the
 // the transaction output.
 func (t *TxOut) SerializeSize() int {
 	// Value 8 bytes + serialized varint size for the length of PkScript +
-	// PkScript bytes.
-	return 8 + VarIntSerializeSize(uint64(len(t.PkScript))) + len(t.PkScript)
+	// PkScript bytes + TokenID opcode bytes.
+	l := len(t.PkScript)
+	if t.TokenID == NDR {
+		l++
+	}
+	return 8 + VarIntSerializeSize(uint64(l)) + l
 }
 
 // NewTxOut returns a new bitcoin transaction output with the provided
@@ -277,6 +291,16 @@ func NewTxOut(value int64, pkScript []byte) *TxOut {
 	return &TxOut{
 		Value:    value,
 		PkScript: pkScript,
+	}
+}
+
+// NewTxOutWithTokenID returns a new bitcoin transaction output with the provided
+// transaction value, public key script and token identity.
+func NewTxOutWithTokenID(value int64, pkScript []byte, tokenID TokenIdentity) *TxOut {
+	return &TxOut{
+		Value:    value,
+		PkScript: pkScript,
+		TokenID:  tokenID,
 	}
 }
 
@@ -397,6 +421,7 @@ func (msg *MsgTx) Copy() *MsgTx {
 		newTxOut := TxOut{
 			Value:    oldTxOut.Value,
 			PkScript: newScript,
+			TokenID:  oldTxOut.TokenID,
 		}
 		newTx.TxOut = append(newTx.TxOut, &newTxOut)
 	}
@@ -993,6 +1018,15 @@ func readTxOut(r io.Reader, pver uint32, version int32, to *TxOut) error {
 
 	to.PkScript, err = readScript(r, pver, MaxMessagePayload,
 		"transaction output public key script")
+
+	// txscript.OP_NDR = 0xb8
+	if len(to.PkScript) > 0 && to.PkScript[len(to.PkScript)-1] == 0xb8 {
+		to.PkScript = to.PkScript[:len(to.PkScript)-1]
+		to.TokenID = NDR
+	} else {
+		to.TokenID = STB
+	}
+
 	return err
 }
 
@@ -1005,6 +1039,11 @@ func WriteTxOut(w io.Writer, pver uint32, version int32, to *TxOut) error {
 	err := binarySerializer.PutUint64(w, littleEndian, uint64(to.Value))
 	if err != nil {
 		return err
+	}
+
+	if to.TokenID == NDR {
+		// txscript.OP_NDR = 0xb8
+		to.PkScript = append(to.PkScript, 0xb8)
 	}
 
 	return WriteVarBytes(w, pver, to.PkScript)

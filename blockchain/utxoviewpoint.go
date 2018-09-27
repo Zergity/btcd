@@ -42,8 +42,9 @@ type UtxoEntry struct {
 	// lot of these in memory, so a few extra bytes of padding adds up.
 
 	amount      int64
-	pkScript    []byte // The public key script for the output.
-	blockHeight int32  // Height of block containing tx.
+	pkScript    []byte             // The public key script for the output.
+	tokenID     wire.TokenIdentity // Identity of the output token.
+	blockHeight int32              // Height of block containing tx.
 
 	// packedFlags contains additional info about output such as whether it
 	// is a coinbase, whether it is spent, and whether it has been modified
@@ -97,6 +98,11 @@ func (entry *UtxoEntry) PkScript() []byte {
 	return entry.pkScript
 }
 
+// TokenID returns the identity of the output token.
+func (entry *UtxoEntry) TokenID() wire.TokenIdentity {
+	return entry.tokenID
+}
+
 // Clone returns a shallow copy of the utxo entry.
 func (entry *UtxoEntry) Clone() *UtxoEntry {
 	if entry == nil {
@@ -106,6 +112,7 @@ func (entry *UtxoEntry) Clone() *UtxoEntry {
 	return &UtxoEntry{
 		amount:      entry.amount,
 		pkScript:    entry.pkScript,
+		tokenID:     entry.tokenID,
 		blockHeight: entry.blockHeight,
 		packedFlags: entry.packedFlags,
 	}
@@ -165,6 +172,7 @@ func (view *UtxoViewpoint) addTxOut(outpoint wire.OutPoint, txOut *wire.TxOut, i
 
 	entry.amount = txOut.Value
 	entry.pkScript = txOut.PkScript
+	entry.tokenID = txOut.TokenID
 	entry.blockHeight = blockHeight
 	entry.packedFlags = tfModified
 	if isCoinBase {
@@ -242,6 +250,7 @@ func (view *UtxoViewpoint) connectTransaction(tx *btcutil.Tx, blockHeight int32,
 			var stxo = SpentTxOut{
 				Amount:     entry.Amount(),
 				PkScript:   entry.PkScript(),
+				TokenID:    entry.TokenID(),
 				Height:     entry.BlockHeight(),
 				IsCoinBase: entry.IsCoinBase(),
 			}
@@ -354,6 +363,7 @@ func (view *UtxoViewpoint) disconnectTransactions(db database.DB, block *btcutil
 				entry = &UtxoEntry{
 					amount:      txOut.Value,
 					pkScript:    txOut.PkScript,
+					tokenID:     txOut.TokenID,
 					blockHeight: block.Height(),
 					packedFlags: packedFlags,
 				}
@@ -424,6 +434,7 @@ func (view *UtxoViewpoint) disconnectTransactions(db database.DB, block *btcutil
 			// journal and mark it as modified.
 			entry.amount = stxo.Amount
 			entry.pkScript = stxo.PkScript
+			entry.tokenID = stxo.TokenID
 			entry.blockHeight = stxo.Height
 			entry.packedFlags = tfModified
 			if stxo.IsCoinBase {

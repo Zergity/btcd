@@ -7,6 +7,7 @@ package blockchain
 import (
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/txscript"
+	"github.com/btcsuite/btcd/wire"
 )
 
 // -----------------------------------------------------------------------------
@@ -543,7 +544,10 @@ func decompressTxOutAmount(amount uint64) uint64 {
 
 // compressedTxOutSize returns the number of bytes the passed transaction output
 // fields would take when encoded with the format described above.
-func compressedTxOutSize(amount uint64, pkScript []byte) int {
+func compressedTxOutSize(amount uint64, pkScript []byte, tokenID wire.TokenIdentity) int {
+	if tokenID == wire.NDR {
+		pkScript = append(pkScript, txscript.OP_NDR)
+	}
 	return serializeSizeVLQ(compressTxOutAmount(amount)) +
 		compressedScriptSize(pkScript)
 }
@@ -553,7 +557,10 @@ func compressedTxOutSize(amount uint64, pkScript []byte) int {
 // passed target byte slice with the format described above.  The target byte
 // slice must be at least large enough to handle the number of bytes returned by
 // the compressedTxOutSize function or it will panic.
-func putCompressedTxOut(target []byte, amount uint64, pkScript []byte) int {
+func putCompressedTxOut(target []byte, amount uint64, pkScript []byte, tokenID wire.TokenIdentity) int {
+	if tokenID == wire.NDR {
+		pkScript = append(pkScript, txscript.OP_NDR)
+	}
 	offset := putVLQ(target, compressTxOutAmount(amount))
 	offset += putCompressedScript(target[offset:], pkScript)
 	return offset
@@ -562,12 +569,12 @@ func putCompressedTxOut(target []byte, amount uint64, pkScript []byte) int {
 // decodeCompressedTxOut decodes the passed compressed txout, possibly followed
 // by other data, into its uncompressed amount and script and returns them along
 // with the number of bytes they occupied prior to decompression.
-func decodeCompressedTxOut(serialized []byte) (uint64, []byte, int, error) {
+func decodeCompressedTxOut(serialized []byte) (uint64, []byte, wire.TokenIdentity, int, error) {
 	// Deserialize the compressed amount and ensure there are bytes
 	// remaining for the compressed script.
 	compressedAmount, bytesRead := deserializeVLQ(serialized)
 	if bytesRead >= len(serialized) {
-		return 0, nil, bytesRead, errDeserialize("unexpected end of " +
+		return 0, nil, wire.STB, bytesRead, errDeserialize("unexpected end of " +
 			"data after compressed amount")
 	}
 
@@ -575,12 +582,18 @@ func decodeCompressedTxOut(serialized []byte) (uint64, []byte, int, error) {
 	// left in the slice for it.
 	scriptSize := decodeCompressedScriptSize(serialized[bytesRead:])
 	if len(serialized[bytesRead:]) < scriptSize {
-		return 0, nil, bytesRead, errDeserialize("unexpected end of " +
+		return 0, nil, wire.STB, bytesRead, errDeserialize("unexpected end of " +
 			"data after script size")
 	}
 
 	// Decompress and return the amount and script.
+	tokenID := wire.STB
 	amount := decompressTxOutAmount(compressedAmount)
 	script := decompressScript(serialized[bytesRead : bytesRead+scriptSize])
-	return amount, script, bytesRead + scriptSize, nil
+	if len(script) > 0 && script[len(script)-1] == txscript.OP_NDR {
+		script = script[:len(script)-1]
+		tokenID = wire.NDR
+	}
+
+	return amount, script, tokenID, bytesRead + scriptSize, nil
 }
