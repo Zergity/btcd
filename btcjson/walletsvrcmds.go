@@ -164,6 +164,26 @@ func NewGetBalanceCmd(account *string, minConf *int) *GetBalanceCmd {
 	}
 }
 
+// GetBalanceTCmd defines the getbalanceT JSON-RPC command.
+type GetBalanceTCmd struct {
+	Account *string
+	Token   *string
+	MinConf *int `jsonrpcdefault:"1"`
+}
+
+// NewGetBalanceTCmd returns a new instance which can be used to issue a
+// getbalanceT JSON-RPC command.
+//
+// The parameters which are pointers indicate they are optional.  Passing nil
+// for optional parameters will use the default value.
+func NewGetBalanceTCmd(account *string, token *string, minConf *int) *GetBalanceTCmd {
+	return &GetBalanceTCmd{
+		Account: account,
+		Token:   token,
+		MinConf: minConf,
+	}
+}
+
 // GetNewAddressCmd defines the getnewaddress JSON-RPC command.
 type GetNewAddressCmd struct {
 	Account *string
@@ -668,6 +688,7 @@ func init() {
 	MustRegisterCmd("getaccountaddress", (*GetAccountAddressCmd)(nil), flags)
 	MustRegisterCmd("getaddressesbyaccount", (*GetAddressesByAccountCmd)(nil), flags)
 	MustRegisterCmd("getbalance", (*GetBalanceCmd)(nil), flags)
+	MustRegisterCmd("getbalanceT", (*GetBalanceTCmd)(nil), flags)
 	MustRegisterCmd("getnewaddress", (*GetNewAddressCmd)(nil), flags)
 	MustRegisterCmd("getrawchangeaddress", (*GetRawChangeAddressCmd)(nil), flags)
 	MustRegisterCmd("getreceivedbyaccount", (*GetReceivedByAccountCmd)(nil), flags)

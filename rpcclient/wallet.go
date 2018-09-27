@@ -1507,6 +1507,48 @@ func (c *Client) GetBalanceMinConf(account string, minConfirms int) (btcutil.Amo
 	return c.GetBalanceMinConfAsync(account, minConfirms).Receive()
 }
 
+// GetBalanceTAsync returns an instance of a type that can be used to get the
+// result of the RPC at some future time by invoking the Receive function on the
+// returned instance.
+//
+// See GetBalance for the blocking version and more details.
+func (c *Client) GetBalanceTAsync(account string, token string) FutureGetBalanceResult {
+	cmd := btcjson.NewGetBalanceTCmd(&account, &token, nil)
+	return c.sendCmd(cmd)
+}
+
+// GetBalanceT returns the available balance from the server for the specified
+// account using the default number of minimum confirmations.  The account may
+// be "*" for all accounts.
+//
+// See GetBalanceMinConf to override the minimum number of confirmations.
+func (c *Client) GetBalanceT(account string, token string) (btcutil.Amount, error) {
+	return c.GetBalanceTAsync(account, token).Receive()
+}
+
+// GetBalanceTMinConfAsync returns an instance of a type that can be used to get
+// the result of the RPC at some future time by invoking the Receive function on
+// the returned instance.
+//
+// See GetBalanceMinConf for the blocking version and more details.
+func (c *Client) GetBalanceTMinConfAsync(account string, token string, minConfirms int) FutureGetBalanceResult {
+	cmd := btcjson.NewGetBalanceTCmd(&account, &token, &minConfirms)
+	return c.sendCmd(cmd)
+}
+
+// GetBalanceTMinConf returns the available balance from the server for the
+// specified account using the specified number of minimum confirmations.  The
+// account may be "*" for all accounts.
+//
+// See GetBalance to use the default minimum number of confirmations.
+func (c *Client) GetBalanceTMinConf(account string, token string, minConfirms int) (btcutil.Amount, error) {
+	if c.config.EnableBCInfoHacks {
+		response := c.GetBalanceTMinConfAsync(account, token, minConfirms)
+		return FutureGetBalanceParseResult(response).Receive()
+	}
+	return c.GetBalanceTMinConfAsync(account, token, minConfirms).Receive()
+}
+
 // FutureGetReceivedByAccountResult is a future promise to deliver the result of
 // a GetReceivedByAccountAsync or GetReceivedByAccountMinConfAsync RPC
 // invocation (or an applicable error).
