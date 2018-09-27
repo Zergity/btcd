@@ -273,6 +273,14 @@ const STB TokenIdentity = false
 // NDR defines token identity for Endurio
 const NDR TokenIdentity = true
 
+// String returns an unique name in byte slice
+func (tokenID TokenIdentity) String() string {
+	if tokenID == NDR {
+		return "NDR"
+	}
+	return "STB"
+}
+
 // SerializeSize returns the number of bytes it would take to serialize the
 // the transaction output.
 func (t *TxOut) SerializeSize() int {
