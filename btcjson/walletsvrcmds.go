@@ -453,9 +453,9 @@ func NewListUnspentCmd(minConf, maxConf *int, addresses *[]string) *ListUnspentC
 
 // ListUnspentTCmd defines the listunspentT JSON-RPC command.
 type ListUnspentTCmd struct {
-	Token     *string `jsonrpcdefault:"STB"`
-	MinConf   *int    `jsonrpcdefault:"1"`
-	MaxConf   *int    `jsonrpcdefault:"9999999"`
+	Token     *string
+	MinConf   *int `jsonrpcdefault:"1"`
+	MaxConf   *int `jsonrpcdefault:"9999999"`
 	Addresses *[]string
 }
 
