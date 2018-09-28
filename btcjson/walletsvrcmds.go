@@ -451,6 +451,28 @@ func NewListUnspentCmd(minConf, maxConf *int, addresses *[]string) *ListUnspentC
 	}
 }
 
+// ListUnspentTCmd defines the listunspentT JSON-RPC command.
+type ListUnspentTCmd struct {
+	Token     *string `jsonrpcdefault:"STB"`
+	MinConf   *int    `jsonrpcdefault:"1"`
+	MaxConf   *int    `jsonrpcdefault:"9999999"`
+	Addresses *[]string
+}
+
+// NewListUnspentTCmd returns a new instance which can be used to issue a
+// listunspentT JSON-RPC command.
+//
+// The parameters which are pointers indicate they are optional.  Passing nil
+// for optional parameters will use the default value.
+func NewListUnspentTCmd(tokenConf *string, minConf, maxConf *int, addresses *[]string) *ListUnspentTCmd {
+	return &ListUnspentTCmd{
+		Token:     tokenConf,
+		MinConf:   minConf,
+		MaxConf:   maxConf,
+		Addresses: addresses,
+	}
+}
+
 // LockUnspentCmd defines the lockunspent JSON-RPC command.
 type LockUnspentCmd struct {
 	Unlock       bool
@@ -705,6 +727,7 @@ func init() {
 	MustRegisterCmd("listsinceblock", (*ListSinceBlockCmd)(nil), flags)
 	MustRegisterCmd("listtransactions", (*ListTransactionsCmd)(nil), flags)
 	MustRegisterCmd("listunspent", (*ListUnspentCmd)(nil), flags)
+	MustRegisterCmd("listunspentT", (*ListUnspentTCmd)(nil), flags)
 	MustRegisterCmd("lockunspent", (*LockUnspentCmd)(nil), flags)
 	MustRegisterCmd("move", (*MoveCmd)(nil), flags)
 	MustRegisterCmd("sendfrom", (*SendFromCmd)(nil), flags)

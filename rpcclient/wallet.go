@@ -240,6 +240,83 @@ func (c *Client) ListUnspentMinMaxAddresses(minConf, maxConf int, addrs []btcuti
 	return c.ListUnspentMinMaxAddressesAsync(minConf, maxConf, addrs).Receive()
 }
 
+// ListUnspentTAsync returns an instance of a type that can be used to get
+// the result of the RPC at some future time by invoking the Receive function
+// on the returned instance.
+//
+// See ListUnspentT for the blocking version and more details.
+func (c *Client) ListUnspentTAsync(tokenConf wire.TokenIdentity) FutureListUnspentResult {
+	token := tokenConf.String()
+	cmd := btcjson.NewListUnspentTCmd(&token, nil, nil, nil)
+	return c.sendCmd(cmd)
+}
+
+// ListUnspentTMinAsync returns an instance of a type that can be used to get
+// the result of the RPC at some future time by invoking the Receive function
+// on the returned instance.
+//
+// See ListUnspentTMin for the blocking version and more details.
+func (c *Client) ListUnspentTMinAsync(tokenConf wire.TokenIdentity, minConf int) FutureListUnspentResult {
+	token := tokenConf.String()
+	cmd := btcjson.NewListUnspentTCmd(&token, &minConf, nil, nil)
+	return c.sendCmd(cmd)
+}
+
+// ListUnspentTMinMaxAsync returns an instance of a type that can be used to get
+// the result of the RPC at some future time by invoking the Receive function
+// on the returned instance.
+//
+// See ListUnspentTMinMax for the blocking version and more details.
+func (c *Client) ListUnspentTMinMaxAsync(tokenConf wire.TokenIdentity, minConf, maxConf int) FutureListUnspentResult {
+	token := tokenConf.String()
+	cmd := btcjson.NewListUnspentTCmd(&token, &minConf, &maxConf, nil)
+	return c.sendCmd(cmd)
+}
+
+// ListUnspentTMinMaxAddressesAsync returns an instance of a type that can be
+// used to get the result of the RPC at some future time by invoking the Receive
+// function on the returned instance.
+//
+// See ListUnspentTMinMaxAddresses for the blocking version and more details.
+func (c *Client) ListUnspentTMinMaxAddressesAsync(tokenConf wire.TokenIdentity, minConf, maxConf int, addrs []btcutil.Address) FutureListUnspentResult {
+	token := tokenConf.String()
+	addrStrs := make([]string, 0, len(addrs))
+	for _, a := range addrs {
+		addrStrs = append(addrStrs, a.EncodeAddress())
+	}
+
+	cmd := btcjson.NewListUnspentTCmd(&token, &minConf, &maxConf, &addrStrs)
+	return c.sendCmd(cmd)
+}
+
+// ListUnspentT returns all unspent transaction outputs known to a wallet, using
+// the default number of minimum and maximum number of confirmations as a
+// filter (1 and 999999, respectively).
+func (c *Client) ListUnspentT(tokenConf wire.TokenIdentity) ([]btcjson.ListUnspentResult, error) {
+	return c.ListUnspentTAsync(tokenConf).Receive()
+}
+
+// ListUnspentTMin returns all unspent transaction outputs known to a wallet,
+// using the specified number of minimum conformations and default number of
+// maximum confiramtions (999999) as a filter.
+func (c *Client) ListUnspentTMin(tokenConf wire.TokenIdentity, minConf int) ([]btcjson.ListUnspentResult, error) {
+	return c.ListUnspentTMinAsync(tokenConf, minConf).Receive()
+}
+
+// ListUnspentTMinMax returns all unspent transaction outputs known to a wallet,
+// using the specified number of minimum and maximum number of confirmations as
+// a filter.
+func (c *Client) ListUnspentTMinMax(tokenConf wire.TokenIdentity, minConf, maxConf int) ([]btcjson.ListUnspentResult, error) {
+	return c.ListUnspentTMinMaxAsync(tokenConf, minConf, maxConf).Receive()
+}
+
+// ListUnspentTMinMaxAddresses returns all unspent transaction outputs that pay
+// to any of specified addresses in a wallet using the specified number of
+// minimum and maximum number of confirmations as a filter.
+func (c *Client) ListUnspentTMinMaxAddresses(tokenConf wire.TokenIdentity, minConf, maxConf int, addrs []btcutil.Address) ([]btcjson.ListUnspentResult, error) {
+	return c.ListUnspentTMinMaxAddressesAsync(tokenConf, minConf, maxConf, addrs).Receive()
+}
+
 // FutureListSinceBlockResult is a future promise to deliver the result of a
 // ListSinceBlockAsync or ListSinceBlockMinConfAsync RPC invocation (or an
 // applicable error).
