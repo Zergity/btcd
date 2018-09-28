@@ -288,7 +288,14 @@ func (t *TxOut) SerializeSize() int {
 	// PkScript bytes + TokenID opcode bytes.
 	l := len(t.PkScript)
 	if t.TokenID == NDR {
-		l++
+		// txscript.OP_NDR = 0xb8
+		if l == 0 || t.PkScript[l-1] != 0xb8 {
+			l++
+		}
+	} else {
+		if l > 0 && t.PkScript[l-1] == 0xb8 {
+			l--
+		}
 	}
 	return 8 + VarIntSerializeSize(uint64(l)) + l
 }
@@ -1051,7 +1058,13 @@ func WriteTxOut(w io.Writer, pver uint32, version int32, to *TxOut) error {
 
 	if to.TokenID == NDR {
 		// txscript.OP_NDR = 0xb8
-		to.PkScript = append(to.PkScript, 0xb8)
+		if len(to.PkScript) == 0 || to.PkScript[len(to.PkScript)-1] != 0xb8 {
+			to.PkScript = append(to.PkScript, 0xb8)
+		}
+	} else {
+		if len(to.PkScript) > 0 && to.PkScript[len(to.PkScript)-1] == 0xb8 {
+			to.PkScript = to.PkScript[:len(to.PkScript)-1]
+		}
 	}
 
 	return WriteVarBytes(w, pver, to.PkScript)
